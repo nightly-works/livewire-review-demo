@@ -31,7 +31,8 @@ class ExpenseList extends Component
     {
         $user = auth()->user();
 
-        $toApprove = $user->is_manager
+        // A manager without a team has no one to approve: whereRelation() would read a null team as "no team".
+        $toApprove = $user->is_manager && $user->team_id !== null
             ? Expense::with('user')
                 ->where('status', 'pending')
                 ->whereRelation('user', 'team_id', $user->team_id)

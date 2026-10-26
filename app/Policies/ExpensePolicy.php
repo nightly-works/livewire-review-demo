@@ -11,7 +11,7 @@ class ExpensePolicy
     public function view(User $user, Expense $expense): bool
     {
         return $expense->user_id === $user->id
-            || ($user->is_manager && $expense->user->team_id === $user->team_id);
+            || ($user->is_manager && $user->team_id !== null && $expense->user->team_id === $user->team_id);
     }
 
     /** The employee edits their own expense while it waits for approval. */
@@ -24,6 +24,7 @@ class ExpensePolicy
     public function approve(User $user, Expense $expense): bool
     {
         return $user->is_manager
+            && $user->team_id !== null
             && $expense->status === 'pending'
             && $expense->user_id !== $user->id
             && $expense->user->team_id === $user->team_id;

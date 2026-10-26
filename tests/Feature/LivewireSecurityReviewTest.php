@@ -10,13 +10,14 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
  * The four findings of the security review, each written as the request a user could send from the
- * browser: Livewire::test() sends property updates and method calls the way the browser does, whatever
- * the page shows. On the app as delivered (tag as-delivered) every numbered test fails; after the fixes
+ * browser: Livewire::test() sends property updates and method calls through Livewire's update endpoint
+ * with the payload a browser sends (HTTP middleware skipped), whatever the page shows. On the app as delivered (tag as-delivered) every numbered test fails; after the fixes
  * they pass. The other tests pin normal use.
  */
 class LivewireSecurityReviewTest extends TestCase
@@ -66,6 +67,16 @@ class LivewireSecurityReviewTest extends TestCase
 
         $this->assertSame('Client dinner', $theirs->fresh()->description);
         $this->assertSame(18000, $theirs->fresh()->amount_cents);
+    }
+
+    public function test_1b_the_expense_id_is_locked(): void
+    {
+        $mine = Expense::factory()->for($this->eli)->create();
+        $theirs = Expense::factory()->create();
+
+        $this->actingAs($this->eli);
+        $this->expectException(CannotUpdateLockedPropertyException::class);
+        Livewire::test(EditExpense::class, ['expense' => $mine])->set('expenseId', $theirs->id);
     }
 
     // Finding 2: approve() is public, so any user can call it; only the button is hidden from non-managers.
@@ -122,7 +133,7 @@ class LivewireSecurityReviewTest extends TestCase
             ->call('save')
             ->assertHasNoErrors();
         $this->assertSame([], Storage::disk('public')->allFiles());
-        $this->assertNotNull($mine->fresh()->receipt_path);
+        Storage::disk('local')->assertExists($mine->fresh()->receipt_path);
     }
 
     // Normal use.
@@ -160,6 +171,20 @@ class LivewireSecurityReviewTest extends TestCase
         $this->actingAs($this->eli)->get(route('expenses.receipt', $mine))->assertOk()->assertDownload();
         $this->actingAs($this->maya)->get(route('expenses.receipt', $mine))->assertOk();
         $this->actingAs($stranger)->get(route('expenses.receipt', $mine))->assertForbidden();
+        $stranger->forceFill(['is_manager' => true])->save();
+        $this->actingAs($stranger)->get(route('expenses.receipt', $mine))->assertForbidden();
+    }
+
+    public function test_a_manager_without_a_team_decides_on_nothing(): void
+    {
+        $loner = User::factory()->create(['team_id' => null]);
+        $expense = Expense::factory()->for(User::factory()->create(['team_id' => null]))->create();
+        $loner->forceFill(['is_manager' => true])->save();
+
+        $this->actingAs($loner);
+        Livewire::test(ExpenseList::class)->assertDontSee($expense->description)
+            ->call('approve', $expense->id)->assertForbidden();
+        $this->assertSame('pending', $expense->fresh()->status);
     }
 
     public function test_manager_approves_and_rejects_their_teams_expenses(): void
