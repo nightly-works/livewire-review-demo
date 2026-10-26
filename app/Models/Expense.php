@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['user_id', 'description', 'amount_cents', 'status', 'receipt_path'])]
+// status is set by the approval code only (forceFill), never mass assigned from a form.
+#[Fillable(['user_id', 'description', 'amount_cents', 'receipt_path'])]
 class Expense extends Model
 {
     use HasFactory;

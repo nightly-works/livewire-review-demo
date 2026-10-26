@@ -20,8 +20,6 @@ class EditExpense extends Component
 
     public $amount;
 
-    public $status;
-
     public $receipt;
 
     public function mount(Expense $expense)
@@ -31,7 +29,6 @@ class EditExpense extends Component
         $this->expenseId = $expense->id;
         $this->description = $expense->description;
         $this->amount = number_format($expense->amount_cents / 100, 2, '.', '');
-        $this->status = $expense->status;
     }
 
     public function save()
@@ -47,7 +44,6 @@ class EditExpense extends Component
         $data = [
             'description' => $this->description,
             'amount_cents' => (int) round($this->amount * 100),
-            'status' => $this->status,
         ];
 
         if ($this->receipt) {

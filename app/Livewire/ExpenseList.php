@@ -24,7 +24,7 @@ class ExpenseList extends Component
     {
         $expense = Expense::findOrFail($expenseId);
         $this->authorize('approve', $expense);
-        $expense->update(['status' => $status]);
+        $expense->forceFill(['status' => $status])->save();
     }
 
     public function render()
