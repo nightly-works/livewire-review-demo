@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Expense;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -11,6 +12,8 @@ class EditExpense extends Component
 {
     use WithFileUploads;
 
+    // Locked: the browser sends every public property back, and Livewire refuses a changed locked one.
+    #[Locked]
     public $expenseId;
 
     public $description;
@@ -39,6 +42,7 @@ class EditExpense extends Component
         ]);
 
         $expense = Expense::findOrFail($this->expenseId);
+        $this->authorize('update', $expense);
 
         $data = [
             'description' => $this->description,
