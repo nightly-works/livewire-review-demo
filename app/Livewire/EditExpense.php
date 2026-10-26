@@ -36,6 +36,8 @@ class EditExpense extends Component
         $this->validate([
             'description' => 'required|string|max:200',
             'amount' => 'required|numeric|min:0.01|max:5000',
+            // Livewire's temporary upload accepts any file up to 12 MB: the type is checked here, on content.
+            'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         $expense = Expense::findOrFail($this->expenseId);
@@ -47,7 +49,8 @@ class EditExpense extends Component
         ];
 
         if ($this->receipt) {
-            $data['receipt_path'] = $this->receipt->store('receipts', 'public');
+            // Private disk: receipts are served by ReceiptController after a policy check, never by URL.
+            $data['receipt_path'] = $this->receipt->store('receipts', 'local');
         }
 
         $expense->update($data);

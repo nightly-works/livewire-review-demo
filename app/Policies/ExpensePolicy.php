@@ -7,6 +7,13 @@ use App\Models\User;
 
 class ExpensePolicy
 {
+    /** The employee and the managers of their team see the expense and its receipt. */
+    public function view(User $user, Expense $expense): bool
+    {
+        return $expense->user_id === $user->id
+            || ($user->is_manager && $expense->user->team_id === $user->team_id);
+    }
+
     /** The employee edits their own expense while it waits for approval. */
     public function update(User $user, Expense $expense): bool
     {

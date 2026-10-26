@@ -147,6 +147,21 @@ class LivewireSecurityReviewTest extends TestCase
         $this->actingAs($this->eli)->get(route('expenses.edit', $theirs))->assertForbidden();
     }
 
+    public function test_receipt_is_served_to_the_employee_and_their_manager_only(): void
+    {
+        Storage::fake('local');
+        $mine = Expense::factory()->for($this->eli)->create();
+        $this->actingAs($this->eli);
+        Livewire::test(EditExpense::class, ['expense' => $mine])
+            ->set('receipt', UploadedFile::fake()->create('receipt.pdf', 120, 'application/pdf'))
+            ->call('save');
+        $stranger = User::factory()->create(['team_id' => Team::factory()->create()->id]);
+
+        $this->actingAs($this->eli)->get(route('expenses.receipt', $mine))->assertOk()->assertDownload();
+        $this->actingAs($this->maya)->get(route('expenses.receipt', $mine))->assertOk();
+        $this->actingAs($stranger)->get(route('expenses.receipt', $mine))->assertForbidden();
+    }
+
     public function test_manager_approves_and_rejects_their_teams_expenses(): void
     {
         [$a, $b] = Expense::factory()->for($this->eli)->count(2)->create();
