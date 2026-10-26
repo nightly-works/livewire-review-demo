@@ -8,14 +8,23 @@ use Livewire\Component;
 /** The employee's own expenses and, for a manager, the team's expenses waiting for a decision. */
 class ExpenseList extends Component
 {
+    // Any public method can be called from the browser, whether or not the page shows its button:
+    // each one checks the policy itself.
     public function approve($expenseId)
     {
-        Expense::findOrFail($expenseId)->update(['status' => 'approved']);
+        $this->decide($expenseId, 'approved');
     }
 
     public function reject($expenseId)
     {
-        Expense::findOrFail($expenseId)->update(['status' => 'rejected']);
+        $this->decide($expenseId, 'rejected');
+    }
+
+    private function decide($expenseId, string $status): void
+    {
+        $expense = Expense::findOrFail($expenseId);
+        $this->authorize('approve', $expense);
+        $expense->update(['status' => $status]);
     }
 
     public function render()
